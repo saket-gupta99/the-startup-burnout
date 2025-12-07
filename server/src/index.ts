@@ -1,0 +1,326 @@
+import express from "express";
+import http from "http";
+import WebSocket, { WebSocketServer } from "ws";
+import dotenv from "dotenv";
+import { randomBytes, randomUUID } from "crypto";
+import {
+  assignColor,
+  broadcastRoomState,
+  getRoom,
+  leavingPlayerSync,
+} from "./utils/libs.js";
+import { COLORS, MAX_PLAYERS, MIN_PLAYERS } from "./utils/constants.js";
+
+dotenv.config({ path: "./.env" });
+
+const app = express();
+const server = http.createServer(app);
+export const wss = new WebSocketServer({ server });
+
+export const rooms = new Map<string, IRoomState>();
+
+wss.on("connection", (ws: WebSocket) => {
+  const id = randomUUID();
+  ws.id = id;
+  ws.send(JSON.stringify({ type: "welcome", socketId: id }));
+
+  console.log("-----------------------\nnew connection added with id", id);
+
+  ws.on("message", (raw) => {
+    let msg;
+    try {
+      msg = JSON.parse(raw.toString());
+    } catch (error) {
+      ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" }));
+      return;
+    }
+
+    switch (msg.type) {
+      /* generate roomCode */
+      case "generate-roomCode": {
+        const roomCode = randomBytes(3).toString("hex").toUpperCase();
+        ws.send(JSON.stringify({ type: "roomCode-generated", roomCode }));
+        console.log(`Generated room code: ${roomCode}`);
+        break;
+      }
+
+      /* create room */
+      //only host should trigger
+      case "create-room": {
+        console.log("Firing create room");
+        const roomCode = msg.roomCode;
+        if (!roomCode || !msg.name) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Provide room code and name of player",
+            })
+          );
+          return;
+        }
+        if (rooms.get(roomCode)) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Room with this code already exists!",
+            })
+          );
+          return;
+        }
+
+        const room: IRoomState = {
+          roomCode: roomCode,
+          status: "lobby",
+          players: [
+            {
+              socketId: ws.id,
+              name: msg.name,
+              role: null,
+              isAlive: true,
+              isHost: true,
+              color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
+            },
+          ],
+          taskProgress: 0,
+          logs: [`Room ${roomCode} created by ${msg.name}`],
+        };
+
+        rooms.set(roomCode, room);
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* join room */
+      //only non-host should trigger
+      case "join-room": {
+        console.log("Firing join room");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+
+        if (room.status !== "lobby") {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "The game has already started or ended!",
+            })
+          );
+          return;
+        }
+
+        if (room.players.length >= MAX_PLAYERS) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message:
+                "The room size exceeded. can't hold more than 10 players",
+            })
+          );
+          return;
+        }
+
+        const playerAlreadyInRoom = room.players.find(
+          (p) => p.socketId === ws.id
+        );
+
+        if (playerAlreadyInRoom) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "You are already in the room!",
+            })
+          );
+          return;
+        }
+
+        const player: IPlayer = {
+          socketId: ws.id,
+          name: msg.name,
+          role: null,
+          isAlive: true,
+          isHost: false,
+          color: assignColor(room),
+        };
+
+        room.players.push(player);
+        room.logs.push(`${msg.name} joined the room`);
+
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* leave room */
+      case "leave-room": {
+        console.log("Firing leave room");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+
+        leavingPlayerSync(room, ws, msg.roomCode);
+        break;
+      }
+
+      /* start game */
+      case "start-game": {
+        console.log("Firing start game");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+
+        if (room.players.length < MIN_PLAYERS) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: `There should be atleast ${MIN_PLAYERS} players.`,
+            })
+          );
+          return;
+        }
+
+        const host = room.players.find((p) => p.socketId === ws.id);
+
+        if (!host || !host.isHost) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Only host can start the game!",
+            })
+          );
+          return;
+        }
+
+        if (room.status !== "lobby") {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Game has already started or ended.",
+            })
+          );
+          return;
+        }
+
+        room.status = "in_progress";
+
+        //pick imposter
+        const imposterId = Math.floor(Math.random() * room.players.length);
+        room.players.forEach((p, idx) => {
+          p.role = idx === imposterId ? "spy" : "crew";
+          p.isAlive = true;
+        });
+
+        room.taskProgress = 0;
+        room.logs.push("Game Started");
+
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* task completed */
+      case "task-completed": {
+        console.log("Firing task completed");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+
+        if (room.status !== "in_progress") return;
+
+        const player = room.players.find((p) => p.socketId === ws.id);
+        if (!player || !player.isAlive) {
+          ws.send(
+            JSON.stringify({ type: "error", message: "You can't do tasks" })
+          );
+          return;
+        }
+        //dont allow spies to do task
+        if (player.role !== "crew") {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Spies can't do tasks" })
+          );
+          return;
+        }
+
+        room.taskProgress = Math.min(100, room.taskProgress + 10);
+        room.logs.push("A task was completed");
+
+        if (room.taskProgress >= 100) {
+          room.status = "ended";
+          room.logs.push("Crew wins! Product launched");
+        }
+
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* spy kill */
+      case "spy-kill": {
+        console.log("Firing spy kill");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+        const targetSocketId = msg.targetSocketId;
+
+        if (room.status !== "in_progress") {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Game not in progress" })
+          );
+          return;
+        }
+        if (targetSocketId === ws.id) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "You can't kill yourself",
+            })
+          );
+          return;
+        }
+
+        const killer = room.players.find((p) => p.socketId === ws.id);
+        if (!killer || killer.role !== "spy" || !killer.isAlive) {
+          ws.send(JSON.stringify({ type: "error", message: "Not allowed" }));
+          return;
+        }
+
+        const target = room.players.find((p) => p.socketId === targetSocketId);
+        if (!target || !target.isAlive) {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid target" }));
+          return;
+        }
+
+        target.isAlive = false;
+        room.logs.push(`Connection lost for ${target.name}`);
+
+        //check spy win condition
+        const aliveSpies = room.players.filter(
+          (p) => p.isAlive && p.role === "spy"
+        ).length;
+        const aliveCrew = room.players.filter(
+          (p) => p.isAlive && p.role === "crew"
+        ).length;
+
+        if (aliveSpies >= aliveCrew) {
+          room.status = "ended";
+          room.logs.push("Spy wins! Launch failed");
+        }
+
+        broadcastRoomState(room!);
+        break;
+      }
+
+      default:
+        ws.send(JSON.stringify({ type: "error", message: "Unknown event" }));
+    }
+  });
+
+  ws.on("close", () => {
+    for (const [roomCode, room] of rooms.entries()) {
+      leavingPlayerSync(room, ws, roomCode);
+    }
+  });
+});
+
+const PORT = process.env.PORT || 8000;
+
+server.listen(PORT, () => {
+  console.log(`Server is running on port: ${PORT}`);
+});
