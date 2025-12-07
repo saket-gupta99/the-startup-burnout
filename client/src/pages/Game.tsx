@@ -1,18 +1,15 @@
-import {
-  FaUserSecret,
-  FaTasks,
-  FaDoorOpen,
-  FaUserTie,
-} from "react-icons/fa";
+import { FaUserSecret, FaTasks, FaDoorOpen, FaUserTie } from "react-icons/fa";
 import { useWebSocketContext } from "../context/WebSocketContext";
 import Button from "../components/Button";
 import Error from "../components/Error";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { playerObj } from "../libs/utils";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import PlayerListPanel from "../components/PlayerListPanel";
 import ActivityLogPanel from "../components/ActivityLogPanel";
+import { safeRemoveItem } from "../libs/safeStorage";
+import GameOverModal from "../components/GameOverModal";
 
 export default function Game() {
   const {
@@ -26,6 +23,8 @@ export default function Game() {
     setRoomCode,
   } = useWebSocketContext();
 
+  const [attemptingToKill, setAttemptingToKill] = useState(false);
+  const [hasDismissedResults, setHasDismissedResults] = useState(false);
   const players = useMemo(() => roomState?.players ?? [], [roomState?.players]);
   const taskProgress = roomState?.taskProgress ?? 0;
   const roomCode = roomState?.roomCode ?? "------";
@@ -33,7 +32,13 @@ export default function Game() {
   const me = players.find((p) => p.socketId === mySocketId) ?? playerObj;
   const role = me.role ?? null;
   const navigate = useNavigate();
-  const prevLogLenRef = useRef<number | null>(null); //this remembers how many messages were displayed last
+  //this remembers how many messages were displayed last
+  const prevLogLenRef = useRef<number | null>(null);
+  const isGameEnded = roomState?.status === "ended";
+  const lastLog = logs.length ? logs[logs.length - 1] : "";
+  const shouldShowModal = isGameEnded && !hasDismissedResults;
+  const currentPlayer = players.find(p => p.socketId === mySocketId);
+
   console.log("roomstate:", roomState);
 
   //using this effect to show latest logs in toast
@@ -64,7 +69,7 @@ export default function Game() {
       roomState.status === "in_progress" || roomState.status === "ended";
     if (gameStarted && players.length <= 1) {
       setRoomCode("");
-      localStorage.removeItem("createdRoomCode");
+      safeRemoveItem("createdRoomCode");
     }
   }, [players, setRoomCode, roomState]);
 
@@ -82,8 +87,39 @@ export default function Game() {
       ws.send(JSON.stringify({ type: "leave-room", roomCode }));
     }
     setRoomState(null);
+    setRoomCode("");
     setGlobalError("");
     navigate(`/home`, { replace: true });
+  }
+
+  function handleSabotageAction() {
+    setAttemptingToKill(true);
+  }
+
+  function killPlayer(targetId: string) {
+    if (role !== "spy" || !ws) return;
+    ws.send(
+      JSON.stringify({
+        type: "spy-kill",
+        roomCode: roomState?.roomCode,
+        targetSocketId: targetId,
+      })
+    );
+    setAttemptingToKill(false);
+  }
+
+  function handlePlayAgain() {
+    setRoomState(null);
+    setGlobalError("");
+    setRoomCode("");
+    navigate("/home", { replace: true });
+  }
+
+  function handleStayOnResults() {
+    // just close any error / leave state as is
+    // if you later add some "showModal" state, toggle here
+    setGlobalError("");
+    setHasDismissedResults(true);
   }
 
   if (globalError) {
@@ -139,6 +175,9 @@ export default function Game() {
             players={players}
             totalSlots={10}
             containerClassName="flex-1"
+            attemptingToKill={attemptingToKill}
+            killPlayer={killPlayer}
+            mySocketId={mySocketId}
           />
         </section>
 
@@ -207,6 +246,7 @@ export default function Game() {
                   variant="primary"
                   className="w-full"
                   onClick={completeATask}
+                  disabled={!currentPlayer?.isAlive}
                 >
                   Do a task
                 </Button>
@@ -216,7 +256,7 @@ export default function Game() {
                 <Button
                   variant="secondary"
                   className="w-full"
-                  // onClick={() => {/* wire spy-kill later */}}
+                  onClick={handleSabotageAction}
                 >
                   Attempt sabotage
                 </Button>
@@ -251,6 +291,14 @@ export default function Game() {
           />
         </section>
       </div>
+
+      {shouldShowModal && (
+        <GameOverModal
+          outcome={lastLog || "The game has ended"}
+          onPlayAgain={handlePlayAgain}
+          onStay={handleStayOnResults}
+        />
+      )}
     </main>
   );
 }

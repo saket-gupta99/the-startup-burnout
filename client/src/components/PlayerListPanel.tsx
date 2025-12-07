@@ -5,8 +5,11 @@ interface PlayerListPanelProps {
   title?: string;
   players: IPlayer[];
   totalSlots?: number;
-  containerClassName?: string; 
+  containerClassName?: string;
   emptyMessage?: string;
+  attemptingToKill?: boolean;
+  killPlayer?: (targetId: string) => void;
+  mySocketId?: string | null
 }
 
 export default function PlayerListPanel({
@@ -15,6 +18,9 @@ export default function PlayerListPanel({
   totalSlots = 10,
   containerClassName = "",
   emptyMessage = "Waiting for players…",
+  attemptingToKill = false,
+  killPlayer = () => {},
+  mySocketId = null
 }: PlayerListPanelProps) {
   return (
     <div
@@ -39,9 +45,7 @@ export default function PlayerListPanel({
 
       {/* Body */}
       <div className="flex-1 space-y-2 overflow-y-auto rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-xs">
-        {!players.length && (
-          <p className="text-slate-500">{emptyMessage}</p>
-        )}
+        {!players.length && <p className="text-slate-500">{emptyMessage}</p>}
 
         {players.map((p) => (
           <div
@@ -63,14 +67,27 @@ export default function PlayerListPanel({
             </div>
 
             {/* Right: status */}
-            <span
-              className={cn(
-                "text-[0.65rem]",
-                p.isAlive ? "text-green-600" : "text-red-500"
+            <div className="flex items-center gap-4">
+              {attemptingToKill && mySocketId !== p.socketId && p.isAlive && (
+                <button
+                  className="text-red-600 uppercase border border-red-700 px-1 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    killPlayer(p.socketId);
+                  }}
+                  // disabled={mySocketId === p.socketId}
+                >
+                  kill
+                </button>
               )}
-            >
-              {p.isAlive ? "Alive" : "Dead"}
-            </span>
+              <span
+                className={cn(
+                  "text-[0.65rem]",
+                  p.isAlive ? "text-green-600" : "text-red-500"
+                )}
+              >
+                {p.isAlive ? "Alive" : "Dead"}
+              </span>
+            </div>
           </div>
         ))}
       </div>

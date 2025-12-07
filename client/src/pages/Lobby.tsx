@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import Error from "../components/Error";
 import PlayerListPanel from "../components/PlayerListPanel";
 import ActivityLogPanel from "../components/ActivityLogPanel";
+import { safeGetItem } from "../libs/safeStorage";
 
 export default function Lobby() {
   const { ws, ready, globalError, setRoomCode, roomState } =
@@ -19,7 +20,8 @@ export default function Lobby() {
   const { roomCode } = useParams();
   const [searchParams] = useSearchParams();
   const name = searchParams.get("name") || "";
-  const isHost = localStorage.getItem("createdRoomCode") === roomCode;
+  const storedCode = safeGetItem("createdRoomCode")
+  const isHost = storedCode === roomCode;
   const hasSentRoomEventRef = useRef(false);
   const navigate = useNavigate();
 

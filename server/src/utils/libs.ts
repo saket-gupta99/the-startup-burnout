@@ -64,5 +64,11 @@ export function leavingPlayerSync(
     room.logs.push(`${firstPlayer!.name} is now the host`);
   }
 
+  // there's only 1 spy so for now do this
+  if (leavingPlayer?.role === "spy") {
+    room.status = "ended";
+    room.logs.push("Spy left the game. Crew wins!");
+  }
+
   broadcastRoomState(room);
 }
