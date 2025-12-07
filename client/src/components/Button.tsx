@@ -12,12 +12,12 @@ interface ButtonProps {
 
 const variantClass: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    " w-full px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition bg-amber-400 px-4 py-2 hover:bg-amber-300 ",
+    "w-full px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition bg-amber-400 px-4 py-2 hover:bg-amber-300",
   secondary:
-    " w-full bg-new-blue hover:bg-new-blue-2 text-white border border-slate-300 px-4 py-2.5 font-medium ",
-  basic: " border border-slate-600 rounded-md py-1 px-3 bg-white text-black ",
+    "w-full bg-new-blue hover:bg-new-blue-2 text-white border border-slate-300 px-4 py-2.5 font-medium",
+  basic: "border border-slate-600 rounded-md py-1 px-3 bg-white text-black",
   error:
-    " text-xs font-semibold uppercase tracking-wide text-red-700 hover:underline ",
+    "text-xs font-semibold uppercase tracking-wide text-red-700 hover:underline",
 };
 
 const baseClass =

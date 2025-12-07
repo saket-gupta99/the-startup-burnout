@@ -1,5 +1,4 @@
 import {
-  FaUsers,
   FaUserSecret,
   FaTasks,
   FaDoorOpen,
@@ -7,10 +6,13 @@ import {
 } from "react-icons/fa";
 import { useWebSocketContext } from "../context/WebSocketContext";
 import Button from "../components/Button";
+import Error from "../components/Error";
 import { useEffect, useMemo, useRef } from "react";
 import { playerObj } from "../libs/utils";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
+import PlayerListPanel from "../components/PlayerListPanel";
+import ActivityLogPanel from "../components/ActivityLogPanel";
 
 export default function Game() {
   const {
@@ -72,6 +74,10 @@ export default function Game() {
   }
 
   function leaveGame() {
+    const userChoice = window.confirm(
+      "Are you sure you want to leave the game?"
+    );
+    if (!userChoice) return;
     if (ws && roomCode !== "------") {
       ws.send(JSON.stringify({ type: "leave-room", roomCode }));
     }
@@ -81,24 +87,7 @@ export default function Game() {
   }
 
   if (globalError) {
-    return (
-      <main className="min-h-dvh flex items-center justify-center bg-white px-4">
-        <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-5 py-6 text-red-800">
-          <h1 className="text-lg font-semibold flex items-center gap-2 mb-2">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-200 text-red-700">
-              !
-            </span>
-            Connection Error
-          </h1>
-
-          <p className="text-sm mb-4">{globalError}</p>
-
-          <Button variant="error" onClick={() => setGlobalError("")}>
-            Dismiss & go back
-          </Button>
-        </div>
-      </main>
-    );
+    return <Error globalError={globalError} />;
   }
 
   return (
@@ -146,57 +135,11 @@ export default function Game() {
           </div>
 
           {/* Players List */}
-          <div className="flex flex-1 flex-col rounded-lg border border-slate-200 bg-white px-5 py-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FaUsers className="h-4 w-4 text-sky-500" />
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-700">
-                  Players
-                </h2>
-              </div>
-
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-[0.7rem] text-slate-500">
-                {players.length} / 10
-              </span>
-            </div>
-
-            <div className="flex-1 space-y-2 overflow-y-auto rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-xs">
-              {!players.length && (
-                <p className="text-slate-500">Waiting for players…</p>
-              )}
-
-              {players.map((p) => (
-                <div
-                  key={p.socketId}
-                  className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    {/* Color circle from backend */}
-                    <span
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: p.color }}
-                    />
-
-                    <span className="font-medium text-slate-700">{p.name}</span>
-
-                    {p.isHost && (
-                      <span className="text-[0.65rem] font-semibold text-amber-600">
-                        (Host)
-                      </span>
-                    )}
-                  </div>
-
-                  <span
-                    className={`text-[0.65rem] ${
-                      p.isAlive ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
-                    {p.isAlive ? "Alive" : "Dead"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <PlayerListPanel
+            players={players}
+            totalSlots={10}
+            containerClassName="flex-1"
+          />
         </section>
 
         {/* MIDDLE: Role + Actions + Progress */}
@@ -301,24 +244,11 @@ export default function Game() {
 
         {/* RIGHT: Activity Log */}
         <section className="flex w-full flex-1 flex-col gap-4 md:w-1/3">
-          <div className="flex flex-1 flex-col rounded-lg border border-slate-200 bg-white px-5 py-4">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-700">
-                Activity Log
-              </h2>
-            </div>
-
-            <div className="flex-1 space-y-1 overflow-y-auto rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-700">
-              {!logs.length ? (
-                <p className="text-slate-500">
-                  • Game events will appear here once the game starts.
-                </p>
-              ) : (
-                logs.map((log, idx) => <p key={idx}>• {log}</p>)
-              )}
-            </div>
-          </div>
+          <ActivityLogPanel
+            logs={logs}
+            containerClassName="flex-1"
+            emptyMessage="• Game events will appear here once the game starts."
+          />
         </section>
       </div>
     </main>

@@ -1,5 +1,5 @@
 export function cn(...args: (string | undefined | null | false | "")[]) {
-  return args.filter(Boolean).join("");
+  return args.filter(Boolean).join(" ");
 }
 
 export const playerObj:IPlayer = {
