@@ -3,13 +3,13 @@ import { useWebSocketContext } from "../context/WebSocketContext";
 import Button from "../components/Button";
 import Error from "../components/Error";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { playerObj } from "../libs/utils";
+import { crewTasksToDo, playerObj } from "../libs/utils";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import PlayerListPanel from "../components/PlayerListPanel";
 import ActivityLogPanel from "../components/ActivityLogPanel";
-import { safeRemoveItem } from "../libs/safeStorage";
 import GameOverModal from "../components/GameOverModal";
+import TaskModal from "../components/TaskModal";
 
 export default function Game() {
   const {
@@ -25,6 +25,7 @@ export default function Game() {
 
   const [attemptingToKill, setAttemptingToKill] = useState(false);
   const [hasDismissedResults, setHasDismissedResults] = useState(false);
+  const [activeTask, setActiveTask] = useState<null | Tasks>(null);
   const players = useMemo(() => roomState?.players ?? [], [roomState?.players]);
   const taskProgress = roomState?.taskProgress ?? 0;
   const roomCode = roomState?.roomCode ?? "------";
@@ -37,7 +38,7 @@ export default function Game() {
   const isGameEnded = roomState?.status === "ended";
   const lastLog = logs.length ? logs[logs.length - 1] : "";
   const shouldShowModal = isGameEnded && !hasDismissedResults;
-  const currentPlayer = players.find(p => p.socketId === mySocketId);
+  const currentPlayer = players.find((p) => p.socketId === mySocketId);
 
   console.log("roomstate:", roomState);
 
@@ -69,14 +70,9 @@ export default function Game() {
       roomState.status === "in_progress" || roomState.status === "ended";
     if (gameStarted && players.length <= 1) {
       setRoomCode("");
-      safeRemoveItem("createdRoomCode");
+      localStorage.removeItem("createdRoomCode");
     }
   }, [players, setRoomCode, roomState]);
-
-  function completeATask() {
-    if (!ws) return;
-    ws.send(JSON.stringify({ type: "task-completed", roomCode }));
-  }
 
   function leaveGame() {
     const userChoice = window.confirm(
@@ -93,7 +89,7 @@ export default function Game() {
   }
 
   function handleSabotageAction() {
-    setAttemptingToKill(true);
+    setAttemptingToKill((s) => !s);
   }
 
   function killPlayer(targetId: string) {
@@ -113,6 +109,22 @@ export default function Game() {
     setGlobalError("");
     setRoomCode("");
     navigate("/home", { replace: true });
+  }
+
+  //randomly assign different tasks to players
+  function handleCrewTaskClick() {
+    if (role !== "crew") return;
+
+    const task =
+      crewTasksToDo[Math.floor(Math.random() * crewTasksToDo.length)];
+    setActiveTask(task);
+  }
+
+  //on crew task complete
+  function onTaskComplete() {
+    if (!ws || !roomCode) return;
+    ws.send(JSON.stringify({ type: "task-completed", roomCode }));
+    setActiveTask(null);
   }
 
   function handleStayOnResults() {
@@ -245,7 +257,7 @@ export default function Game() {
                 <Button
                   variant="primary"
                   className="w-full"
-                  onClick={completeATask}
+                  onClick={handleCrewTaskClick}
                   disabled={!currentPlayer?.isAlive}
                 >
                   Do a task
@@ -297,6 +309,15 @@ export default function Game() {
           outcome={lastLog || "The game has ended"}
           onPlayAgain={handlePlayAgain}
           onStay={handleStayOnResults}
+        />
+      )}
+
+      {activeTask && (
+        <TaskModal
+          isOpen={activeTask !== null}
+          onTaskComplete={onTaskComplete}
+          onClose={() => setActiveTask(null)}
+          taskType={activeTask}
         />
       )}
     </main>

@@ -12,6 +12,14 @@ type PlayerColor =
   | "indigo"
   | "rose";
 
+type Tasks =
+  | "compile"
+  | "data-entry"
+  | "spam-filter"
+  | "bug"
+  | "captcha"
+  | "terminal";
+
 interface IPlayer {
   socketId: string;
   name: string;

@@ -3,7 +3,7 @@ import { cn } from "../libs/utils";
 
 interface ButtonProps {
   children: ReactNode;
-  variant?: "primary" | "secondary" | "basic" | "error";
+  variant?: "primary" | "secondary" | "basic" | "error" | "task";
   type?: "submit" | "button";
   className?: string;
   disabled?: boolean;
@@ -18,6 +18,7 @@ const variantClass: Record<NonNullable<ButtonProps["variant"]>, string> = {
   basic: "border border-slate-600 rounded-md py-1 px-3 bg-white text-black",
   error:
     "text-xs font-semibold uppercase tracking-wide text-red-700 hover:underline",
+  task: "mt-6 w-full rounded-md bg-emerald-600 text-white py-2 text-sm font-semibold hover:bg-emerald-700"
 };
 
 const baseClass =

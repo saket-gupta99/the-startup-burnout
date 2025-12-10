@@ -27,4 +27,5 @@ interface IRoomState {
   players: IPlayer[];
   taskProgress: number;
   logs: string[];
+  chats?: string[];
 }

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import Spinner from "../components/Spinner";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import { safeSetItem } from "../libs/safeStorage";
 
 export default function Home() {
   const { ws, ready, globalError, setGlobalError, roomCode, setRoomCode } =
@@ -25,7 +24,7 @@ export default function Home() {
       if (msg.type === "roomCode-generated") {
         setRoomCode(msg.roomCode);
         setRoomData((prev) => ({ ...prev, roomCode: msg.roomCode }));
-        safeSetItem("createdRoomCode", msg.roomCode);
+        localStorage.setItem("createdRoomCode", msg.roomCode);
       }
     }
 
