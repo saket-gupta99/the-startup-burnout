@@ -1,12 +1,43 @@
+import { useRef, useState } from "react";
 import Button from "./Button";
+import toast from "react-hot-toast";
 
 interface TerminalTaskUIProps {
   onTaskComplete: () => void;
 }
 
-export function TerminalTaskUI({ onTaskComplete }: TerminalTaskUIProps) {
-  // You will add state + verification logic
-  const targetCommand = "npm run build";
+const ACCEPTED_COMMANDS = ["npm run build", "yarn build", "pnpm build"];
+
+function normalizeCommand(s: string) {
+  return s.trim().replace(/\s+/g, " ");
+}
+
+export default function TerminalTaskUI({
+  onTaskComplete,
+}: TerminalTaskUIProps) {
+  const [command, setCommand] = useState("");
+  const [running, setRunning] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function handleSubmit() {
+    const normalized = normalizeCommand(command);
+    if (!normalized) {
+      toast.error("Type a command first.");
+      return;
+    }
+    if (!ACCEPTED_COMMANDS.includes(normalized)) {
+      toast.error("Incorrect command!");
+      return;
+    }
+
+    // simulate a short build process for UX
+    setRunning(true);
+    setTimeout(() => {
+      setRunning(false);
+      toast.success("Build succeeded — Terminal task complete!");
+      onTaskComplete();
+    }, 900);
+  }
 
   return (
     <div>
@@ -25,34 +56,46 @@ export function TerminalTaskUI({ onTaskComplete }: TerminalTaskUIProps) {
           </span>
         </div>
 
-        <div className="px-3 py-3 space-y-1">
+        <div className="px-3 py-3 space-y-2">
           <p className="text-[0.7rem] text-slate-400">
-            # Tip: Use npm to build the project
+            # Tip: Use npm or yarn to build the project
           </p>
-          <p className="flex items-center text-[0.75rem]">
-            <span className="text-emerald-400 mr-1">dev@remote-startup</span>
-            <span className="mr-1 text-slate-400">~/app</span>
-            <span className="text-slate-200">$</span>
-            {/* You will replace this with a controlled input later */}
-          </p>
+
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400">dev@remote-startup</span>
+            <span className="text-slate-400">~/app</span>
+            <span className="text-slate-200 font-mono">$</span>
+
+            <input
+              ref={inputRef}
+              autoFocus
+              aria-label="Terminal command"
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
+              placeholder="Type your command here..."
+              className="ml-2 bg-transparent outline-none text-slate-100 placeholder:text-slate-500 w-full"
+            />
+          </div>
+
+          {running && (
+            <div className="text-[0.7rem] text-slate-400">Running build...</div>
+          )}
         </div>
       </div>
 
-      {/* Command input */}
-      <input
-        type="text"
-        placeholder="Type your command here..."
-        className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm font-mono outline-none focus:ring-1 focus:ring-amber-400"
-      />
-
-      <Button variant="task" className="mt-3">
-        Run command
-      </Button>
-
-      <p className="text-[0.7rem] text-slate-500 mt-2">
-        (Store the input in state, compare to &quot;{targetCommand}&quot;, and
-        call <code>onTaskComplete()</code> only when it matches.)
-      </p>
+      <div className="flex gap-2">
+        <Button
+          variant="task"
+          className="grow"
+          onClick={handleSubmit}
+          disabled={running}
+        >
+          {running ? "Running..." : "Run command"}
+        </Button>
+      </div>
     </div>
   );
 }

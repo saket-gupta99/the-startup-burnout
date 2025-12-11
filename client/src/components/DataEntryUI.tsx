@@ -2,7 +2,11 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import Button from "./Button";
 
-function DataEntryUI({ onTaskComplete }: { onTaskComplete: () => void }) {
+interface TerminalTaskUIProps {
+  onTaskComplete: () => void;
+}
+
+function DataEntryUI({ onTaskComplete }: TerminalTaskUIProps) {
   const [form, setForm] = useState({
     name: "Jhon Doe",       
     email: "userexample.com",

@@ -6,12 +6,11 @@ interface Email {
   subject: string;
   spam: boolean;
 }
-
-export default function SpamFilterUI({
-  onTaskComplete,
-}: {
+interface TerminalTaskUIProps {
   onTaskComplete: () => void;
-}) {
+}
+
+export default function SpamFilterUI({ onTaskComplete }: TerminalTaskUIProps) {
   const [emails, setEmails] = useState<Email[]>([
     { id: 1, subject: "WIN $1000 NOW!!!", spam: true },
     { id: 2, subject: "Team Meeting at 4 PM", spam: false },

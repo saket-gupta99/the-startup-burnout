@@ -1,11 +1,11 @@
 import { FaTimes, FaTasks } from "react-icons/fa";
+import { formatTitle } from "../libs/utils";
 import CompileUI from "./CompileUI";
 import DataEntryUI from "./DataEntryUI";
-import { formatTitle } from "../libs/utils";
 import SpamFilterUI from "./SpamFilterUI";
-import { CaptchaTaskUI } from "./CaptchaTaskUI";
-import { BugFixerTaskUI } from "./BugFixerTaskUI";
-import { TerminalTaskUI } from "./TerminalTaskUI";
+import CaptchaTaskUI from "./CaptchaTaskUI";
+import BugFixerTaskUI from "./BugFixerTaskUI";
+import TerminalTaskUI from "./TerminalTaskUI";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export default function TaskModal({
       <div className="w-full max-w-lg rounded-lg bg-white shadow-xl p-6 relative">
         {/* Close Button */}
         <button
-          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
           onClick={onClose}
         >
           <FaTimes className="h-4 w-4" />

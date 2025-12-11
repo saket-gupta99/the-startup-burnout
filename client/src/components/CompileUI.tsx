@@ -2,11 +2,11 @@ import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import Button from "./Button";
 
-export default function CompileUI({
-  onTaskComplete,
-}: {
+interface TerminalTaskUIProps {
   onTaskComplete: () => void;
-}) {
+}
+
+export default function CompileUI({ onTaskComplete }: TerminalTaskUIProps) {
   const sliderDomRef = useRef<HTMLDivElement | null>(null);
   const greenZoneRef = useRef<HTMLDivElement | null>(null);
   const sliderState = useRef<{
