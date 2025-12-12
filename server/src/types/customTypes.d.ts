@@ -19,6 +19,7 @@ interface IPlayer {
   isAlive: boolean;
   isHost: boolean;
   color?: PlayerColor;
+  lastKillAt?: number;
 }
 
 interface IRoomState {
@@ -28,4 +29,7 @@ interface IRoomState {
   taskProgress: number;
   logs: string[];
   chats?: string[];
+  lastSabotageAt?: number;
+  freezeUntil?: number; 
+  lastFreezeAt?:number; 
 }

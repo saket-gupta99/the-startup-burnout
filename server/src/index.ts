@@ -9,7 +9,15 @@ import {
   getRoom,
   leavingPlayerSync,
 } from "./utils/libs.js";
-import { COLORS, MAX_PLAYERS, MIN_PLAYERS } from "./utils/constants.js";
+import {
+  COLORS,
+  FREEZE_COOLDOWN,
+  FREEZE_DURATION,
+  KILL_COOLDOWN,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  SABOTAGE_COOLDOWN,
+} from "./utils/constants.js";
 
 dotenv.config({ path: "./.env" });
 
@@ -239,6 +247,18 @@ wss.on("connection", (ws: WebSocket) => {
           return;
         }
 
+        //dont allow task to be completed when under ddos attack
+        const now = Date.now();
+        if (room.freezeUntil && now < FREEZE_COOLDOWN) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Cant do task while under attack",
+            })
+          );
+          return;
+        }
+
         room.taskProgress = Math.min(100, room.taskProgress + 10);
         room.logs.push("A task was completed");
 
@@ -287,6 +307,16 @@ wss.on("connection", (ws: WebSocket) => {
           return;
         }
 
+        //cooldown check
+        const now = Date.now();
+        if (killer.lastKillAt && now - killer.lastKillAt < KILL_COOLDOWN) {
+          ws.send(
+            JSON.stringify({ type: "error", message: "kill on cooldown" })
+          );
+          return;
+        }
+        killer.lastKillAt = now;
+
         target.isAlive = false;
         room.logs.push(`Connection lost for ${target.name}`);
 
@@ -304,6 +334,78 @@ wss.on("connection", (ws: WebSocket) => {
         }
 
         broadcastRoomState(room!);
+        break;
+      }
+
+      /* Sabotage */
+      case "sabotage": {
+        console.log("Firing spy sabotage");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+        if (room.status !== "in_progress") {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Game not in progress" })
+          );
+          return;
+        }
+
+        const spy = room.players.find((p) => p.socketId === ws.id);
+        if (!spy || spy.role !== "spy" || !spy.isAlive) {
+          ws.send(JSON.stringify({ type: "error", message: "Not allowed" }));
+          return;
+        }
+
+        //check if on cooldown
+        const now = Date.now();
+        if (
+          room.lastSabotageAt &&
+          now - room.lastSabotageAt < SABOTAGE_COOLDOWN
+        ) {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Sabotage on cooldown" })
+          );
+          return;
+        }
+        room.lastSabotageAt = now;
+        room.taskProgress = Math.max(0, (room.taskProgress || 0) - 10);
+        room.logs.push("Sabotage happended. Global Progress reduced by 10%");
+
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* DDOS */
+      case "ddos": {
+        console.log("Firing ddos");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+        if (room.status !== "in_progress") {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Game not in progress" })
+          );
+          return;
+        }
+
+        const spy = room.players.find((p) => p.socketId === ws.id);
+        if (!spy || spy.role !== "spy" || !spy.isAlive) {
+          ws.send(JSON.stringify({ type: "error", message: "Not allowed" }));
+          return;
+        }
+
+        //check if on cooldown
+        const now = Date.now();
+        if (room.lastFreezeAt && now - room.lastFreezeAt < FREEZE_COOLDOWN) {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Freeze on cooldown" })
+          );
+          return;
+        }
+        room.lastFreezeAt = now;
+        room.freezeUntil = room.lastFreezeAt + FREEZE_DURATION;
+        room.logs.push("System under DDOS attack. Screen Frozen for 5s.");
+        broadcastRoomState(room);
         break;
       }
 

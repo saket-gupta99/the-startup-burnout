@@ -4,7 +4,7 @@ interface ActivityLogPanelProps {
   title?: string;
   logs: string[];
   emptyMessage?: string;
-  containerClassName?: string; 
+  containerClassName?: string;
 }
 
 export default function ActivityLogPanel({
