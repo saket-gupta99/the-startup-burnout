@@ -17,6 +17,7 @@ interface GameActionsProps {
   handleSabotageAction: () => void;
   handleKillAction: () => void;
   handleFreezeAction: () => void;
+  handleEmergencyMeetingAction: () => void;
   leaveGame: () => void;
 }
 
@@ -35,6 +36,7 @@ export default function GameActions({
   handleSabotageAction,
   handleKillAction,
   handleFreezeAction,
+  handleEmergencyMeetingAction,
   leaveGame,
 }: GameActionsProps) {
   return (
@@ -91,6 +93,7 @@ export default function GameActions({
         <Button
           variant="basic"
           className="w-full flex items-center justify-center gap-2"
+          onClick={handleEmergencyMeetingAction}
         >
           Call emergency meeting
         </Button>

@@ -20,6 +20,7 @@ import RoleCard from "../components/RoleCard";
 import TaskProgress from "../components/TaskProgress";
 import FreezeOverlay from "../components/FreezeOverlay";
 import GameActions from "../components/GameActions";
+import MeetingModal from "../components/MeetingModal";
 
 export default function Game() {
   const {
@@ -77,12 +78,12 @@ export default function Game() {
       return;
     }
 
-    if (logs.length > prevLogLenRef.current) {
+    if (logs.length > prevLogLenRef.current && roomState?.status !== "ended") {
       const newLogs = logs.slice(prevLogLenRef.current);
       newLogs.forEach((log) => toast(log));
       prevLogLenRef.current = logs.length;
     }
-  }, [logs, ws, ready]);
+  }, [logs, ws, ready, roomState]);
 
   //empty the room code and localstorage state if 1 player remains
   useEffect(() => {
@@ -149,21 +150,19 @@ export default function Game() {
 
   //manage sabotage cooldown
   useEffect(() => {
+    //defensive guard if ref gets initialized before effect runs
     if (sabotageTimerRef.current) {
-      window.clearInterval(sabotageTimerRef.current);
+      clearInterval(sabotageTimerRef.current);
       sabotageTimerRef.current = null;
     }
     if (sabotageCooldown && sabotageCooldown > 0) {
-      sabotageTimerRef.current = window.setInterval(() => {
+      sabotageTimerRef.current = setInterval(() => {
         setSabotageCooldown((prev) => {
-          if (!prev) {
-            window.clearInterval(sabotageTimerRef.current!);
-            sabotageTimerRef.current = null;
-            return null;
-          }
-          if (prev <= 1) {
-            window.clearInterval(sabotageTimerRef.current!);
-            sabotageTimerRef.current = null;
+          if (!prev || prev <= 1) {
+            if (sabotageTimerRef.current) {
+              clearInterval(sabotageTimerRef.current!);
+              sabotageTimerRef.current = null;
+            }
             return null;
           }
           return prev - 1;
@@ -173,7 +172,7 @@ export default function Game() {
 
     return () => {
       if (sabotageTimerRef.current) {
-        window.clearInterval(sabotageTimerRef.current);
+        clearInterval(sabotageTimerRef.current);
         sabotageTimerRef.current = null;
       }
     };
@@ -182,20 +181,17 @@ export default function Game() {
   //manage kill cooldown
   useEffect(() => {
     if (killTimerRef.current) {
-      window.clearInterval(killTimerRef.current);
+      clearInterval(killTimerRef.current);
       killTimerRef.current = null;
     }
     if (killCooldown && killCooldown > 0) {
-      killTimerRef.current = window.setInterval(() => {
+      killTimerRef.current = setInterval(() => {
         setKillCooldown((prev) => {
-          if (!prev) {
-            window.clearInterval(killTimerRef.current!);
-            killTimerRef.current = null;
-            return null;
-          }
-          if (prev <= 1) {
-            window.clearInterval(killTimerRef.current!);
-            killTimerRef.current = null;
+          if (!prev || prev <= 1) {
+            if (killTimerRef.current) {
+              clearInterval(killTimerRef.current!);
+              killTimerRef.current = null;
+            }
             return null;
           }
           return prev - 1;
@@ -205,7 +201,7 @@ export default function Game() {
 
     return () => {
       if (killTimerRef.current) {
-        window.clearInterval(killTimerRef.current);
+        clearInterval(killTimerRef.current);
         killTimerRef.current = null;
       }
     };
@@ -214,16 +210,16 @@ export default function Game() {
   //manage freeze active timer
   useEffect(() => {
     if (freezeTimerRef.current) {
-      window.clearInterval(freezeTimerRef.current);
+      clearInterval(freezeTimerRef.current);
       freezeTimerRef.current = null;
     }
 
     if (freezeSecondsLeft && freezeSecondsLeft > 0) {
-      freezeTimerRef.current = window.setInterval(() => {
+      freezeTimerRef.current = setInterval(() => {
         setFreezeSecondsLeft((prev) => {
           if (!prev || prev <= 1) {
             if (freezeTimerRef.current) {
-              window.clearInterval(freezeTimerRef.current);
+              clearInterval(freezeTimerRef.current);
               freezeTimerRef.current = null;
             }
             return null;
@@ -235,7 +231,7 @@ export default function Game() {
 
     return () => {
       if (freezeTimerRef.current) {
-        window.clearInterval(freezeTimerRef.current);
+        clearInterval(freezeTimerRef.current);
         freezeTimerRef.current = null;
       }
     };
@@ -244,16 +240,16 @@ export default function Game() {
   //manage freeze cooldown timer
   useEffect(() => {
     if (freezeCooldownTimerRef.current) {
-      window.clearInterval(freezeCooldownTimerRef.current);
+      clearInterval(freezeCooldownTimerRef.current);
       freezeCooldownTimerRef.current = null;
     }
 
     if (freezeCooldown && freezeCooldown > 0) {
-      freezeCooldownTimerRef.current = window.setInterval(() => {
+      freezeCooldownTimerRef.current = setInterval(() => {
         setFreezeCooldown((prev) => {
           if (!prev || prev <= 1) {
             if (freezeCooldownTimerRef.current) {
-              window.clearInterval(freezeCooldownTimerRef.current);
+              clearInterval(freezeCooldownTimerRef.current);
               freezeCooldownTimerRef.current = null;
             }
             return null;
@@ -265,7 +261,7 @@ export default function Game() {
 
     return () => {
       if (freezeCooldownTimerRef.current) {
-        window.clearInterval(freezeCooldownTimerRef.current);
+        clearInterval(freezeCooldownTimerRef.current);
         freezeCooldownTimerRef.current = null;
       }
     };
@@ -333,7 +329,13 @@ export default function Game() {
   //on crew task complete
   function onTaskComplete() {
     if (!ws || !roomCode) return;
-    ws.send(JSON.stringify({ type: "task-completed", roomCode }));
+    ws.send(
+      JSON.stringify({
+        type: "task-completed",
+        roomCode,
+        name: currentPlayer?.name,
+      })
+    );
     setActiveTask(null);
   }
 
@@ -342,11 +344,16 @@ export default function Game() {
     setHasDismissedResults(true);
   }
 
+  function handleEmergencyMeetingAction() {
+    if (!ws) return;
+    ws.send(JSON.stringify({ type: "start-meeting", roomCode }));
+  }
+
   if (globalError) {
     return <Error globalError={globalError} />;
   }
 
-  // Calculate if buttons should be disabled
+  //calculate if buttons should be disabled
   const isSabotageDisabled = sabotageCooldown !== null && sabotageCooldown > 0;
   const isKillDisabled = killCooldown !== null && killCooldown > 0;
   const isFreezeDisabled = freezeCooldown !== null && freezeCooldown > 0;
@@ -356,6 +363,10 @@ export default function Game() {
     <main className="min-h-dvh bg-white text-slate-900">
       {freezeSecondsLeft && freezeSecondsLeft > 0 && (
         <FreezeOverlay freezeSecondsLeft={freezeSecondsLeft} />
+      )}
+
+      {roomState?.status === "meeting" && (
+        <MeetingModal roomState={roomState} mySocketId={mySocketId} ws={ws} />
       )}
 
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 px-4 py-8 md:flex-row md:items-stretch md:py-12">
@@ -395,6 +406,7 @@ export default function Game() {
             handleSabotageAction={handleSabotageAction}
             handleKillAction={handleKillAction}
             handleFreezeAction={handleFreezeAction}
+            handleEmergencyMeetingAction={handleEmergencyMeetingAction}
             leaveGame={leaveGame}
           />
         </section>
@@ -410,7 +422,7 @@ export default function Game() {
       </div>
 
       {/* Modals */}
-      {shouldShowModal && (
+      {shouldShowModal &&  (
         <GameOverModal
           outcome={lastLog || "The game has ended"}
           onPlayAgain={handlePlayAgain}
@@ -418,7 +430,7 @@ export default function Game() {
         />
       )}
 
-      {activeTask && (
+      {activeTask && roomState?.status !== "meeting" && (
         <TaskModal
           isOpen={activeTask !== null}
           onTaskComplete={onTaskComplete}

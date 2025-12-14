@@ -30,14 +30,22 @@ interface IPlayer {
   lastKillAt?: number;
 }
 
+interface Meeting {
+  discussionEndsAt: null | number; // timestamp
+  votingEndsAt: null | number; // timestamp
+  votes: Record<string, string | "skip">; // socketId → suspectId | "skip"
+  hasMeeting: boolean; // helper so multiple meetings can't overlap
+}
 interface IRoomState {
   roomCode: string;
   status: "lobby" | "in_progress" | "meeting" | "ended";
   players: IPlayer[];
   taskProgress: number;
   logs: string[];
-  chats?: string[];
+  chats?: Chat[];
   lastSabotageAt?: number;
-  freezeUntil?: number; 
-  lastFreezeAt?:number; 
+  freezeUntil?: number;
+  lastFreezeAt?: number;
+  meeting: Meeting;
 }
+

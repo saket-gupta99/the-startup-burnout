@@ -8,6 +8,7 @@ import {
   broadcastRoomState,
   getRoom,
   leavingPlayerSync,
+  startMeeting,
 } from "./utils/libs.js";
 import {
   COLORS,
@@ -91,6 +92,12 @@ wss.on("connection", (ws: WebSocket) => {
           ],
           taskProgress: 0,
           logs: [`Room ${roomCode} created by ${msg.name}`],
+          meeting: {
+            discussionEndsAt: null,
+            votingEndsAt: null,
+            votes: {},
+            hasMeeting: false,
+          },
         };
 
         rooms.set(roomCode, room);
@@ -260,7 +267,7 @@ wss.on("connection", (ws: WebSocket) => {
         }
 
         room.taskProgress = Math.min(100, room.taskProgress + 10);
-        room.logs.push("A task was completed");
+        room.logs.push(`A task was completed by ${msg.name}`);
 
         if (room.taskProgress >= 100) {
           room.status = "ended";
@@ -334,6 +341,14 @@ wss.on("connection", (ws: WebSocket) => {
         }
 
         broadcastRoomState(room!);
+
+        // Start meeting automatically
+        if (room.status !== "ended") {
+          room.meeting.hasMeeting = true;
+          setTimeout(() => {
+            startMeeting(room, `${target.name}'s body was reported`);
+          }, 2000);
+        }
         break;
       }
 
@@ -405,6 +420,104 @@ wss.on("connection", (ws: WebSocket) => {
         room.lastFreezeAt = now;
         room.freezeUntil = room.lastFreezeAt + FREEZE_DURATION;
         room.logs.push("System under DDOS attack. Screen Frozen for 5s.");
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* Start meeting */
+      case "start-meeting": {
+        console.log("Firing start meeting");
+        const room = getRoom(msg.roomCode, ws);
+        if (!room) return;
+
+        if (room.status === "meeting") {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Meeting already in progress",
+            })
+          );
+          return;
+        }
+        if (room.status !== "in_progress") {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Can start meeting only in game",
+            })
+          );
+          return;
+        }
+
+        const player = room.players.find((p) => p.socketId === ws.id);
+        if (!player || !player.isAlive) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Only alive player can start the meeting",
+            })
+          );
+          return;
+        }
+        room.chats = [];
+        room.chats.push({
+          name: "System",
+          msg: `${player.name} started the meeting`,
+        });
+
+        startMeeting(room, `${player.name} called for a meeting.`);
+        break;
+      }
+
+      /* Voting */
+      case "voting": {
+        const room = getRoom(msg.roomCode, ws);
+        if (!room) return;
+
+        if (room.status !== "meeting" || !room.meeting.votingEndsAt) {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Voting not active" })
+          );
+          return;
+        }
+
+        const voter = room.players.find((p) => p.socketId === ws.id);
+        if (!voter || !voter.isAlive) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Dead players cannot vote",
+            })
+          );
+          return;
+        }
+
+        const choice = msg.suspectId || "skip";
+
+        room.meeting.votes[ws.id] = choice;
+        room.logs.push(`${voter.name} has voted.`);
+        broadcastRoomState(room);
+        break;
+      }
+
+      /* Chat */
+      case "chat": {
+        console.log("Firing chat");
+        const room = getRoom(msg.roomCode, ws);
+
+        if (!room) return;
+        if (room.status !== "meeting") {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Game not in meeting" })
+          );
+          return;
+        }
+        const player = room.players.find((p) => p.socketId === ws.id);
+        if (!player || !player.isAlive) {
+          return;
+        }
+
+        room.chats?.push({ name: msg.name, msg: msg.msg });
         broadcastRoomState(room);
         break;
       }

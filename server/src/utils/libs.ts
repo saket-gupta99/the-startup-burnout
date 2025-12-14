@@ -1,12 +1,12 @@
 import WebSocket from "ws";
 import { rooms, wss } from "../index.js";
-import { COLORS } from "./constants.js";
+import { COLORS, DISCUSSION_TIME, VOTING_TIME } from "./constants.js";
 
 export function broadcastRoomState(
   room: IRoomState,
   payload: string = JSON.stringify({ type: "room-state", room })
 ) {
-console.log(room)
+  console.log(room);
   wss.clients.forEach((client) => {
     if (
       client.readyState === WebSocket.OPEN &&
@@ -70,5 +70,104 @@ export function leavingPlayerSync(
     room.logs.push("Spy left the game. Crew wins!");
   }
 
+  broadcastRoomState(room);
+}
+
+export function startMeeting(room: IRoomState, reason: string) {
+  if (room.meeting.hasMeeting && room.status === "meeting") return;
+
+  room.status = "meeting";
+  room.meeting.hasMeeting = true;
+  room.meeting.votes = {};
+  room.chats = [];
+  room.chats.push({ name: "System", msg: reason });
+
+  room.meeting.discussionEndsAt = Date.now() + DISCUSSION_TIME;
+  room.meeting.votingEndsAt = null;
+
+  room.logs.push(`Meeting started: ${reason}`);
+  broadcastRoomState(room);
+
+  // Start voting after discussion time
+  setTimeout(() => {
+    startVotingPhase(room);
+  }, DISCUSSION_TIME);
+}
+
+export function startVotingPhase(room: IRoomState) {
+  if (room.status !== "meeting") return;
+
+  room.meeting.votingEndsAt = Date.now() + VOTING_TIME;
+  room.logs.push("Voting has started.");
+  broadcastRoomState(room);
+
+  // When voting time ends, evaluate results
+  setTimeout(() => {
+    finishVoting(room);
+  }, VOTING_TIME);
+}
+
+export function finishVoting(room: IRoomState) {
+  if (room.status !== "meeting") return;
+
+  const votes = Object.values(room.meeting.votes);
+
+  // If no votes → no one ejected
+  if (votes.length === 0) {
+    room.logs.push("No votes cast. No one was ejected.");
+    endMeeting(room);
+    return;
+  }
+
+  // Count votes
+  const tally: Record<string, number> = {};
+  for (const choice of votes) {
+    tally[choice] = (tally[choice] || 0) + 1;
+  }
+
+  // Determine highest vote getters
+  const maxVotes = Math.max(...Object.values(tally));
+  const candidates = Object.keys(tally).filter((x) => tally[x] === maxVotes);
+
+  // Tie → no ejection
+  if (candidates.length > 1 || candidates[0] === "skip") {
+    room.logs.push("Voting tied. No one was ejected.");
+    endMeeting(room);
+    return;
+  }
+
+  // Otherwise, eject the player with most votes
+  const suspectId = candidates[0];
+  const suspect = room.players.find((p) => p.socketId === suspectId);
+
+  if (!suspect) {
+    room.logs.push("Invalid suspect during voting. No one ejected.");
+    endMeeting(room);
+    return;
+  }
+
+  suspect.isAlive = false;
+
+  if (suspect.role === "spy") {
+    room.logs.push(`${suspect.name} was the spy! Crew wins!`);
+    room.status = "ended";
+    broadcastRoomState(room);
+    return;
+  } else {
+    room.logs.push(`${suspect.name} was not the spy. They were ejected.`);
+  }
+
+  endMeeting(room);
+}
+
+export function endMeeting(room: IRoomState) {
+  room.meeting.hasMeeting = false;
+  room.meeting.votes = {};
+  room.meeting.discussionEndsAt = null;
+  room.meeting.votingEndsAt = null;
+
+  if (room.status === "meeting") room.status = "in_progress";
+
+  room.logs.push("Meeting ended. Back to work.");
   broadcastRoomState(room);
 }
