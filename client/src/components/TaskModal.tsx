@@ -6,6 +6,8 @@ import SpamFilterUI from "./SpamFilterUI";
 import CaptchaTaskUI from "./CaptchaTaskUI";
 import BugFixerTaskUI from "./BugFixerTaskUI";
 import TerminalTaskUI from "./TerminalTaskUI";
+import LogSequenceTaskUI from "./LogSequenceTaskUI";
+import ApiStatusTaskUI from "./ApiStatusTypeUI";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -63,6 +65,12 @@ export default function TaskModal({
           )}
           {taskType === "terminal" && (
             <TerminalTaskUI onTaskComplete={onTaskComplete} />
+          )}
+          {taskType === "log-sequence" && (
+            <LogSequenceTaskUI onTaskComplete={onTaskComplete} />
+          )}
+          {taskType === "api-status" && (
+            <ApiStatusTaskUI onTaskComplete={onTaskComplete} />
           )}
         </div>
       </div>

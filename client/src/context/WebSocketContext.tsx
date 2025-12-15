@@ -19,7 +19,7 @@ interface IWebSocketContext {
   setRoomState: Dispatch<SetStateAction<IRoomState | null>>;
   mySocketId: string | null;
   hasRestartedGame: boolean;
-  setHasRestartedGame:  Dispatch<SetStateAction<boolean>>;
+  setHasRestartedGame: Dispatch<SetStateAction<boolean>>;
 }
 
 const WebSocketContext = createContext<IWebSocketContext>({
@@ -33,7 +33,7 @@ const WebSocketContext = createContext<IWebSocketContext>({
   setRoomState: () => {},
   mySocketId: "",
   hasRestartedGame: false,
-  setHasRestartedGame: () => {}
+  setHasRestartedGame: () => {},
 });
 
 export default function WebSocketProvider({
@@ -84,6 +84,13 @@ export default function WebSocketProvider({
         if (msg.type === "room-state") {
           setRoomState(msg.room);
         }
+
+        if (msg.type === "voting-results") {
+          setRoomState((prev) => ({ ...prev! })); // ensure re-render
+          window.dispatchEvent(
+            new CustomEvent("show-voting-results", { detail: msg.results })
+          );
+        }
       };
 
       setWs(currentWs);
@@ -109,7 +116,7 @@ export default function WebSocketProvider({
         setRoomState,
         mySocketId,
         hasRestartedGame,
-        setHasRestartedGame
+        setHasRestartedGame,
       }}
     >
       {children}

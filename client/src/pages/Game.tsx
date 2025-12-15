@@ -21,6 +21,7 @@ import TaskProgress from "../components/TaskProgress";
 import FreezeOverlay from "../components/FreezeOverlay";
 import GameActions from "../components/GameActions";
 import MeetingModal from "../components/MeetingModal";
+import VoteResultModal from "../components/VoteResultModal";
 
 export default function Game() {
   const {
@@ -35,6 +36,7 @@ export default function Game() {
     setHasRestartedGame,
   } = useWebSocketContext();
 
+  const [voteResults, setVoteResults] = useState<VotingResult | null>(null);
   const [attemptingToKill, setAttemptingToKill] = useState(false);
   const [hasDismissedResults, setHasDismissedResults] = useState(false);
   const [activeTask, setActiveTask] = useState<null | Tasks>(null);
@@ -65,6 +67,17 @@ export default function Game() {
   const currentPlayer = players.find((p) => p.socketId === mySocketId);
 
   console.log("roomstate:", roomState);
+
+  useEffect(() => {
+    function handleResults(e: Event) {
+      const customEvent = e as CustomEvent<VotingResult>;
+      setVoteResults(customEvent.detail);
+    }
+
+    window.addEventListener("show-voting-results", handleResults);
+    return () =>
+      window.removeEventListener("show-voting-results", handleResults);
+  }, []);
 
   //using this effect to show latest logs in toast
   useEffect(() => {
@@ -331,12 +344,28 @@ export default function Game() {
     setHasDismissedResults(true);
   }
 
+  //find if on mobile -> for not assinging drag and drop task
+  function isMobileDevice() {
+    return (
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+    );
+  }
+
   //randomly assign different tasks to players
   function handleCrewTaskClick() {
     if (role !== "crew") return;
 
+    const isMobile = isMobileDevice();
+
+    //html5 drag and drop api doesn't work on mobile device as it relies on mouse event 
+    const filteredTasks = isMobile
+      ? crewTasksToDo.filter((task) => task !== "spam-filter" && task !== "bug")
+      : crewTasksToDo;
+
+    if (filteredTasks.length === 0) return;
     const task =
-      crewTasksToDo[Math.floor(Math.random() * crewTasksToDo.length)];
+      filteredTasks[Math.floor(Math.random() * filteredTasks.length)];
     setActiveTask(task);
   }
 
@@ -440,6 +469,14 @@ export default function Game() {
 
       {roomState?.status === "meeting" && (
         <MeetingModal roomState={roomState} mySocketId={mySocketId} ws={ws} />
+      )}
+
+      {voteResults && (
+        <VoteResultModal
+          results={voteResults}
+          onClose={() => setVoteResults(null)}
+          players={players}
+        />
       )}
 
       {shouldShowModal && (

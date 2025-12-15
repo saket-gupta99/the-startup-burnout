@@ -73,6 +73,7 @@ export default function MeetingModal({
             players={alivePlayers}
             mySocketId={mySocketId}
             onVote={submitVote}
+            votes={meeting.votes}
           />
         )}
       </div>

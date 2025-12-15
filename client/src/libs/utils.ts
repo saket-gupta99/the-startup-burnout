@@ -21,6 +21,8 @@ export const crewTasksToDo: Tasks[] = [
   "data-entry",
   "spam-filter",
   "terminal",
+  "api-status",
+  "log-sequence"
 ];
 
 //shuffle array items

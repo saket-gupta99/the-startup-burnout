@@ -111,54 +111,98 @@ export function finishVoting(room: IRoomState) {
   if (room.status !== "meeting") return;
 
   const votes = Object.values(room.meeting.votes);
-
-  // If no votes → no one ejected
-  if (votes.length === 0) {
-    room.logs.push("No votes cast. No one was ejected.");
-    endMeeting(room);
-    return;
-  }
-
-  // Count votes
   const tally: Record<string, number> = {};
+
   for (const choice of votes) {
     tally[choice] = (tally[choice] || 0) + 1;
   }
 
-  // Determine highest vote getters
-  const maxVotes = Math.max(...Object.values(tally));
-  const candidates = Object.keys(tally).filter((x) => tally[x] === maxVotes);
+  let ejectedPlayer: string | null = null;
+  let isSpy = false;
+  let reason = "";
 
-  // Tie → no ejection
-  if (candidates.length > 1 || candidates[0] === "skip") {
-    room.logs.push("Voting tied. No one was ejected.");
-    endMeeting(room);
+  // No votes casted
+  if (votes.length === 0) {
+    reason = "No votes cast. No one was ejected.";
+
+    broadcastVotingResults(room, {
+      tally,
+      ejectedPlayer,
+      isSpy,
+      reason,
+    });
+
+    setTimeout(() => endMeeting(room), 2500);
     return;
   }
 
-  // Otherwise, eject the player with most votes
+  const maxVotes = Math.max(...Object.values(tally));
+  const candidates = Object.keys(tally).filter(
+    (id) => tally[id] === maxVotes
+  );
+
+  // Tie or skip
+  if (candidates.length > 1 || candidates[0] === "skip") {
+    reason = "Voting tied. No one was ejected.";
+
+    broadcastVotingResults(room, {
+      tally,
+      ejectedPlayer,
+      isSpy,
+      reason,
+    });
+
+    setTimeout(() => endMeeting(room), 2500);
+    return;
+  }
+
+  // Eject player
   const suspectId = candidates[0];
   const suspect = room.players.find((p) => p.socketId === suspectId);
 
   if (!suspect) {
-    room.logs.push("Invalid suspect during voting. No one ejected.");
-    endMeeting(room);
+    reason = "Invalid suspect. No one was ejected.";
+
+    broadcastVotingResults(room, {
+      tally,
+      ejectedPlayer,
+      isSpy,
+      reason,
+    });
+
+    setTimeout(() => endMeeting(room), 2500);
     return;
   }
 
   suspect.isAlive = false;
+  ejectedPlayer = suspect.socketId;
+  isSpy = suspect.role === "spy";
 
-  if (suspect.role === "spy") {
-    room.logs.push(`${suspect.name} was the spy! Crew wins!`);
+  reason = isSpy
+    ? `${suspect.name} was the spy!`
+    : `${suspect.name} was not the spy.`;
+
+  broadcastVotingResults(room, {
+    tally,
+    ejectedPlayer,
+    isSpy,
+    reason,
+  });
+
+  // End game if spy eliminated
+  if (isSpy) {
+    room.logs.push(reason);
     room.status = "ended";
     broadcastRoomState(room);
     return;
-  } else {
-    room.logs.push(`${suspect.name} was not the spy. They were ejected.`);
   }
 
-  endMeeting(room);
+  // Delay endMeeting so FE can animate
+  setTimeout(() => {
+    endMeeting(room);
+  }, 2500);
 }
+
 
 export function endMeeting(room: IRoomState) {
   room.meeting.hasMeeting = false;
@@ -182,4 +226,29 @@ export function endMeeting(room: IRoomState) {
     room.logs.push("Meeting ended. Back to work.");
   }
   broadcastRoomState(room);
+}
+
+
+export function broadcastVotingResults(
+  room: IRoomState,
+  results: {
+    tally: Record<string, number>;
+    ejectedPlayer: string | null;
+    isSpy: boolean;
+    reason: string;
+  }
+) {
+  const payload = JSON.stringify({
+    type: "voting-results",
+    results,
+  });
+
+  wss.clients.forEach((client) => {
+    if (
+      client.readyState === WebSocket.OPEN &&
+      room.players.some((p) => p.socketId === client.id)
+    ) {
+      client.send(payload);
+    }
+  });
 }

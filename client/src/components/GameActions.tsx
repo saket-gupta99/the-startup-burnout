@@ -94,6 +94,7 @@ export default function GameActions({
           variant="basic"
           className="w-full flex items-center justify-center gap-2"
           onClick={handleEmergencyMeetingAction}
+          disabled={!currentPlayerIsAlive}
         >
           Call emergency meeting
         </Button>

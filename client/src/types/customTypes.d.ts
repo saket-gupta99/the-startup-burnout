@@ -18,7 +18,9 @@ type Tasks =
   | "spam-filter"
   | "bug"
   | "captcha"
-  | "terminal";
+  | "terminal"
+  | "api-status"
+  | "log-sequence";
 
 interface IPlayer {
   socketId: string;
@@ -49,3 +51,9 @@ interface IRoomState {
   meeting: Meeting;
 }
 
+interface VotingResult {
+  tally: Record<string, number>;
+  ejectedPlayer: string | null;
+  isSpy: boolean;
+  reason: string;
+}
