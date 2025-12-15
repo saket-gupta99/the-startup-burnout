@@ -1,7 +1,7 @@
 # The Startup: Burnout 🔥
 
 **The Startup: Burnout** is a real-time multiplayer social deduction game inspired by *Among Us*, reimagined in a modern tech-startup setting.  
-Players work together as a remote startup team to launch a product — while one (or more) hidden **Corporate Spies** try to sabotage the launch from within.
+Players work together as a remote startup team to launch a product — while one hidden **Corporate Spies** try to sabotage the launch from within.
 
 The game focuses on **real-time interaction**, **short skill-based tasks**, and **player-driven tension** rather than heavy visuals.
 
