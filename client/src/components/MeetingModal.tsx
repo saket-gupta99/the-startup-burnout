@@ -16,8 +16,9 @@ export default function MeetingModal({
   const meeting = roomState.meeting;
 
   const [phase, setPhase] = useState<"discussion" | "voting">("discussion");
-  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState(0);
   const alivePlayers = roomState.players.filter((p) => p.isAlive);
+  const currPlayer = roomState.players.find((p) => p.socketId === mySocketId);
 
   // Determine current phase based on timestamps
   useEffect(() => {
@@ -27,10 +28,7 @@ export default function MeetingModal({
       if (meeting.discussionEndsAt && now < meeting.discussionEndsAt) {
         setPhase("discussion");
         setTimeLeft(Math.ceil((meeting.discussionEndsAt - now) / 1000));
-      } else if (
-        meeting.votingEndsAt &&
-        now < meeting.votingEndsAt
-      ) {
+      } else if (meeting.votingEndsAt && now < meeting.votingEndsAt) {
         setPhase("voting");
         setTimeLeft(Math.ceil((meeting.votingEndsAt - now) / 1000));
       }
@@ -70,7 +68,7 @@ export default function MeetingModal({
           <DiscussionUI roomState={roomState} mySocketId={mySocketId} ws={ws} />
         )}
 
-        {phase === "voting" && (
+        {phase === "voting" && currPlayer?.isAlive && (
           <VotingUI
             players={alivePlayers}
             mySocketId={mySocketId}
@@ -81,5 +79,3 @@ export default function MeetingModal({
     </div>
   );
 }
-
-

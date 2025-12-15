@@ -1,15 +1,25 @@
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Button from "./Button";
 
 interface MeetingChatProps {
   chats: { name: string; msg: string }[];
   name: string | null;
   ws: WebSocket | null;
-  roomCode: string
+  roomCode: string;
 }
 
-export default function MeetingChat({ chats, name, ws,roomCode }: MeetingChatProps) {
+export default function MeetingChat({
+  chats,
+  name,
+  ws,
+  roomCode,
+}: MeetingChatProps) {
   const [message, setMessage] = useState("");
+  const messageEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chats]);
 
   function sendMessage() {
     if (!ws || !message.trim()) return;
@@ -32,7 +42,7 @@ export default function MeetingChat({ chats, name, ws,roomCode }: MeetingChatPro
         Discussion Chat
       </h2>
 
-      <div className="flex-1 overflow-y-auto space-y-1 mb-3 bg-white border rounded p-2 text-xs">
+      <div className="flex-1 max-h-[60vh] overflow-y-auto space-y-1 mb-3 bg-white border rounded p-2 text-xs">
         {chats.length === 0 && (
           <p className="text-slate-400">No messages yet…</p>
         )}
@@ -43,6 +53,7 @@ export default function MeetingChat({ chats, name, ws,roomCode }: MeetingChatPro
             <span>{c.msg}</span>
           </div>
         ))}
+        <div ref={messageEndRef}></div>
       </div>
 
       <div className="flex gap-2">
@@ -51,6 +62,9 @@ export default function MeetingChat({ chats, name, ws,roomCode }: MeetingChatPro
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type to chat…"
           className="flex-1 border px-2 py-1 rounded text-sm"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") sendMessage();
+          }}
         />
         <Button variant="primary" onClick={sendMessage}>
           Send

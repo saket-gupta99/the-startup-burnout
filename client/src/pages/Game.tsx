@@ -32,6 +32,7 @@ export default function Game() {
     setRoomState,
     setGlobalError,
     setRoomCode,
+    setHasRestartedGame,
   } = useWebSocketContext();
 
   const [attemptingToKill, setAttemptingToKill] = useState(false);
@@ -267,6 +268,18 @@ export default function Game() {
     };
   }, [freezeCooldown]);
 
+  //take everyone to lobby page on game restart
+  useEffect(() => {
+    if (!roomState) return;
+    if (roomState.roomCode !== roomCode) return;
+    if (roomState.status === "lobby") {
+      setHasRestartedGame(true);
+      navigate(`/lobby/${roomState.roomCode}?name=${currentPlayer?.name}`, {
+        replace: true,
+      });
+    }
+  }, [roomState, navigate, roomCode, currentPlayer, setHasRestartedGame]);
+
   function leaveGame() {
     const userChoice = window.confirm(
       "Are you sure you want to leave the game?"
@@ -310,11 +323,12 @@ export default function Game() {
     setFreezeSecondsLeft(Math.ceil(FREEZE_COOLDOWN / 1000));
   }
 
+  //restart game
   function handlePlayAgain() {
-    setRoomState(null);
+    if (!ws || !roomState) return;
     setGlobalError("");
-    setRoomCode("");
-    navigate("/home", { replace: true });
+    ws.send(JSON.stringify({ type: "restart-game", roomCode }));
+    setHasDismissedResults(true);
   }
 
   //randomly assign different tasks to players
@@ -354,21 +368,19 @@ export default function Game() {
   }
 
   //calculate if buttons should be disabled
-  const isSabotageDisabled = sabotageCooldown !== null && sabotageCooldown > 0;
-  const isKillDisabled = killCooldown !== null && killCooldown > 0;
-  const isFreezeDisabled = freezeCooldown !== null && freezeCooldown > 0;
+  const isSabotageDisabled =
+    (sabotageCooldown !== null && sabotageCooldown > 0) ||
+    roomState?.status === "meeting";
+  const isKillDisabled =
+    (killCooldown !== null && killCooldown > 0) ||
+    roomState?.status === "meeting";
+  const isFreezeDisabled =
+    (freezeCooldown !== null && freezeCooldown > 0) ||
+    roomState?.status === "meeting";
   const isFrozen = freezeSecondsLeft !== null && freezeSecondsLeft > 0;
 
   return (
     <main className="min-h-dvh bg-white text-slate-900">
-      {freezeSecondsLeft && freezeSecondsLeft > 0 && (
-        <FreezeOverlay freezeSecondsLeft={freezeSecondsLeft} />
-      )}
-
-      {roomState?.status === "meeting" && (
-        <MeetingModal roomState={roomState} mySocketId={mySocketId} ws={ws} />
-      )}
-
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 px-4 py-8 md:flex-row md:items-stretch md:py-12">
         {/* LEFT: Players */}
         <section className="flex w-full flex-col gap-4 md:w-1/3">
@@ -422,7 +434,15 @@ export default function Game() {
       </div>
 
       {/* Modals */}
-      {shouldShowModal &&  (
+      {freezeSecondsLeft && freezeSecondsLeft > 0 && (
+        <FreezeOverlay freezeSecondsLeft={freezeSecondsLeft} />
+      )}
+
+      {roomState?.status === "meeting" && (
+        <MeetingModal roomState={roomState} mySocketId={mySocketId} ws={ws} />
+      )}
+
+      {shouldShowModal && (
         <GameOverModal
           outcome={lastLog || "The game has ended"}
           onPlayAgain={handlePlayAgain}
@@ -430,7 +450,7 @@ export default function Game() {
         />
       )}
 
-      {activeTask && roomState?.status !== "meeting" && (
+      {activeTask && roomState?.status === "in_progress" && (
         <TaskModal
           isOpen={activeTask !== null}
           onTaskComplete={onTaskComplete}

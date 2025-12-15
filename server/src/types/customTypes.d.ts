@@ -40,8 +40,8 @@ interface IRoomState {
   taskProgress: number;
   logs: string[];
   chats?: Chat[];
-  lastSabotageAt?: number;
-  freezeUntil?: number;
-  lastFreezeAt?: number;
+  lastSabotageAt?: number | null;
+  freezeUntil?: number | null;
+  lastFreezeAt?: number | null;
   meeting: Meeting;
 }

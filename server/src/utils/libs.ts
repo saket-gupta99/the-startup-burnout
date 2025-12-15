@@ -166,8 +166,20 @@ export function endMeeting(room: IRoomState) {
   room.meeting.discussionEndsAt = null;
   room.meeting.votingEndsAt = null;
 
-  if (room.status === "meeting") room.status = "in_progress";
+  //check spy win condition
+  const aliveSpies = room.players.filter(
+    (p) => p.isAlive && p.role === "spy"
+  ).length;
+  const aliveCrew = room.players.filter(
+    (p) => p.isAlive && p.role === "crew"
+  ).length;
 
-  room.logs.push("Meeting ended. Back to work.");
+  if (aliveSpies >= aliveCrew) {
+    room.status = "ended";
+    room.logs.push("Spy wins! Launch failed");
+  } else if (room.status === "meeting") {
+    room.status = "in_progress";
+    room.logs.push("Meeting ended. Back to work.");
+  }
   broadcastRoomState(room);
 }

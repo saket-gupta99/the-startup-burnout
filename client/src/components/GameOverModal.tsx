@@ -23,8 +23,7 @@ export default function GameOverModal({
         </h2>
 
         <p className="mt-2 text-sm text-slate-600">
-          Check the activity log to see what happened. You can go back to the
-          lobby page to start a new game.
+          The game has ended. You may review the log or start a new round.
         </p>
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">

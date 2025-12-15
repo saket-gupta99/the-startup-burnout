@@ -64,6 +64,11 @@ export default function PlayerListPanel({
                   (Host)
                 </span>
               )}
+              {p.socketId === mySocketId && (
+                <span className="text-[0.65rem]  font-semibold text-new-blue-2">
+                  (You)
+                </span>
+              )}
             </div>
 
             {/* Right: status */}

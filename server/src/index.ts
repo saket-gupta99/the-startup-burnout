@@ -522,6 +522,40 @@ wss.on("connection", (ws: WebSocket) => {
         break;
       }
 
+      case "restart-game": {
+        console.log("Firing chat");
+        const room = getRoom(msg.roomCode, ws);
+        if (!room) return;
+        if (room.status !== "ended") {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Game hasn't ended." })
+          );
+          return;
+        }
+        room.players.forEach((p) => {
+          p.isAlive = true;
+          p.role = null;
+          p.lastKillAt = 0;
+        });
+        room.status = "lobby";
+        room.taskProgress = 0;
+        room.logs = [];
+        room.chats = [];
+        room.lastFreezeAt = null;
+        room.lastSabotageAt = null;
+        room.freezeUntil = null;
+        room.meeting = {
+          discussionEndsAt: null,
+          votingEndsAt: null,
+          votes: {},
+          hasMeeting: false,
+        };
+
+        room.logs.push("Game restarted.");
+        broadcastRoomState(room);
+        break;
+      }
+
       default:
         ws.send(JSON.stringify({ type: "error", message: "Unknown event" }));
     }

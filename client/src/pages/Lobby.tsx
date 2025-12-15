@@ -14,7 +14,7 @@ import PlayerListPanel from "../components/PlayerListPanel";
 import ActivityLogPanel from "../components/ActivityLogPanel";
 
 export default function Lobby() {
-  const { ws, ready, globalError, setRoomCode, roomState } =
+  const { ws, ready, globalError, setRoomCode, roomState, hasRestartedGame } =
     useWebSocketContext();
   const { roomCode } = useParams();
   const [searchParams] = useSearchParams();
@@ -27,11 +27,15 @@ export default function Lobby() {
   useEffect(() => {
     if (roomCode) setRoomCode(roomCode);
   }, [roomCode, setRoomCode]);
-
+console.log(hasRestartedGame)
   // if host trigger create-room event and for non-host join-room event
   useEffect(() => {
     if (!ws || !roomCode || !name) return;
     if (!ready || ws.readyState !== WebSocket.OPEN) return;
+    if (hasRestartedGame) {
+      hasSentRoomEventRef.current = true;
+      return;
+    }
 
     //making sure event runs only 1 time for each player
     if (!hasSentRoomEventRef.current) {
@@ -49,7 +53,7 @@ export default function Lobby() {
         ws.send(JSON.stringify({ type: "join-room", roomCode, name }));
       }
     }
-  }, [ws, name, roomCode, ready, isHost]);
+  }, [ws, name, roomCode, ready, isHost, hasRestartedGame]);
 
   //take everyone to game page when status changes to in-progress
   useEffect(() => {

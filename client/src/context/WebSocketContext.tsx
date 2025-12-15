@@ -18,6 +18,8 @@ interface IWebSocketContext {
   roomState: IRoomState | null;
   setRoomState: Dispatch<SetStateAction<IRoomState | null>>;
   mySocketId: string | null;
+  hasRestartedGame: boolean;
+  setHasRestartedGame:  Dispatch<SetStateAction<boolean>>;
 }
 
 const WebSocketContext = createContext<IWebSocketContext>({
@@ -30,6 +32,8 @@ const WebSocketContext = createContext<IWebSocketContext>({
   roomState: null,
   setRoomState: () => {},
   mySocketId: "",
+  hasRestartedGame: false,
+  setHasRestartedGame: () => {}
 });
 
 export default function WebSocketProvider({
@@ -43,6 +47,7 @@ export default function WebSocketProvider({
   const [roomCode, setRoomCode] = useState("");
   const [roomState, setRoomState] = useState<IRoomState | null>(null);
   const [mySocketId, setMySocketId] = useState<string | null>(null);
+  const [hasRestartedGame, setHasRestartedGame] = useState(false);
 
   useEffect(() => {
     let currentWs: WebSocket;
@@ -103,6 +108,8 @@ export default function WebSocketProvider({
         roomState,
         setRoomState,
         mySocketId,
+        hasRestartedGame,
+        setHasRestartedGame
       }}
     >
       {children}
