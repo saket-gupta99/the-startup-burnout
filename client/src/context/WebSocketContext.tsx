@@ -7,6 +7,7 @@ import {
   type SetStateAction,
   type Dispatch,
 } from "react";
+import { playSound } from "../libs/utils";
 
 interface IWebSocketContext {
   ws: WebSocket | null;
@@ -78,6 +79,7 @@ export default function WebSocketProvider({
         }
 
         if (msg.type === "error") {
+          playSound("/sounds/ui/error.mp3");
           setError(msg.message);
         }
 

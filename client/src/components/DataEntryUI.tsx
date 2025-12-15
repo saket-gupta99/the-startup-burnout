@@ -1,6 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Button from "./Button";
+import { playSound } from "../libs/utils";
 
 interface TerminalTaskUIProps {
   onTaskComplete: () => void;
@@ -41,6 +42,7 @@ function DataEntryUI({ onTaskComplete }: TerminalTaskUIProps) {
     }
 
     if (errors.length) {
+      playSound("/sounds/ui/error.mp3");
       toast.error(errors[0]); 
       return false;
     }

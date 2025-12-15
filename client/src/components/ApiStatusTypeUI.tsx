@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Button from "./Button";
 import toast from "react-hot-toast";
+import { playSound } from "../libs/utils";
 
 interface ApiStatusTaskUIProps {
   onTaskComplete: () => void;
@@ -16,7 +17,11 @@ const initialServices: Service[] = [
   { id: 1, name: "Auth API", status: Math.random() > 0.5 ? "UP" : "DOWN" },
   { id: 2, name: "Payments API", status: Math.random() > 0.5 ? "UP" : "DOWN" },
   { id: 3, name: "User Service", status: Math.random() > 0.5 ? "UP" : "DOWN" },
-  { id: 4, name: "Notification API", status: Math.random() > 0.5 ? "UP" : "DOWN" },
+  {
+    id: 4,
+    name: "Notification API",
+    status: Math.random() > 0.5 ? "UP" : "DOWN",
+  },
   { id: 5, name: "Analytics API", status: Math.random() > 0.5 ? "UP" : "DOWN" },
 ];
 
@@ -40,6 +45,7 @@ export default function ApiStatusTaskUI({
     );
 
     if (wrong) {
+      playSound("/sounds/ui/error.mp3");
       toast.error("Incorrect service status detected.");
       return;
     }

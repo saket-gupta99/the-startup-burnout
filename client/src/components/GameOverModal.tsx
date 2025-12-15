@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import Button from "./Button";
+import { playSound } from "../libs/utils";
 
 interface GameOverModalProps {
   outcome: string;            
@@ -11,6 +13,15 @@ export default function GameOverModal({
   onPlayAgain,
   onStay,
 }: GameOverModalProps) {
+
+  useEffect(() => {
+  if (outcome.includes("Crew")) {
+    playSound("/sounds/result/crew-win.mp3");
+  } else {
+    playSound("/sounds/result/spy-win.mp3");
+  }
+}, [outcome]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-lg bg-white px-5 py-6 shadow-lg">

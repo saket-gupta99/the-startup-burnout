@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Button from "./Button";
 import { FaBug } from "react-icons/fa6";
 import toast from "react-hot-toast";
+import { playSound } from "../libs/utils";
 
 interface BugFixerTaskUIProps {
   onTaskComplete: () => void;
@@ -94,6 +95,7 @@ export default function BugFixerTaskUI({ onTaskComplete }: BugFixerTaskUIProps) 
             `"${w.bug.title}" placed in ${w.placedIn} (should be in ${w.bug.module})`
         )
         .join("; ");
+        playSound("/sounds/ui/error.mp3");
       toast.error(`Some bugs are in the wrong moduel: ${message}`, {
         duration: 5000,
       });

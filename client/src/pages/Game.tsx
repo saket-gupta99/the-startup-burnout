@@ -7,6 +7,7 @@ import {
   getRemainingSecondsFromTimestamp,
   KILL_COOLDOWN,
   playerObj,
+  playSound,
   SABOTAGE_COOLDOWN,
 } from "../libs/utils";
 import { useNavigate } from "react-router";
@@ -287,6 +288,7 @@ export default function Game() {
     if (roomState.roomCode !== roomCode) return;
     if (roomState.status === "lobby") {
       setHasRestartedGame(true);
+      playSound("/sounds/ui/click.wav");
       navigate(`/lobby/${roomState.roomCode}?name=${currentPlayer?.name}`, {
         replace: true,
       });
@@ -299,8 +301,10 @@ export default function Game() {
     );
     if (!userChoice) return;
     if (ws && roomCode !== "------") {
+      playSound("/sounds/ui/click.wav");
       ws.send(JSON.stringify({ type: "leave-room", roomCode }));
     }
+
     setRoomState(null);
     setRoomCode("");
     setGlobalError("");
@@ -309,6 +313,8 @@ export default function Game() {
 
   function handleSabotageAction() {
     if (role !== "spy" || !ws) return;
+
+    playSound("/sounds/game/sabotage.mp3");
     ws.send(JSON.stringify({ type: "sabotage", roomCode }));
     setSabotageCooldown(Math.ceil(SABOTAGE_COOLDOWN / 1000));
   }
@@ -319,6 +325,8 @@ export default function Game() {
 
   function killPlayer(targetId: string) {
     if (role !== "spy" || !ws) return;
+
+    playSound("/sounds/game/kill.mp3");
     ws.send(
       JSON.stringify({
         type: "spy-kill",
@@ -332,6 +340,8 @@ export default function Game() {
 
   function handleFreezeAction() {
     if (role !== "spy" || !ws) return;
+
+    playSound("/sounds/game/freeze.mp3");
     ws.send(JSON.stringify({ type: "ddos", roomCode }));
     setFreezeSecondsLeft(Math.ceil(FREEZE_COOLDOWN / 1000));
   }
@@ -339,6 +349,7 @@ export default function Game() {
   //restart game
   function handlePlayAgain() {
     if (!ws || !roomState) return;
+
     setGlobalError("");
     ws.send(JSON.stringify({ type: "restart-game", roomCode }));
     setHasDismissedResults(true);
@@ -358,12 +369,14 @@ export default function Game() {
 
     const isMobile = isMobileDevice();
 
-    //html5 drag and drop api doesn't work on mobile device as it relies on mouse event 
+    //html5 drag and drop api doesn't work on mobile device as it relies on mouse event
     const filteredTasks = isMobile
       ? crewTasksToDo.filter((task) => task !== "spam-filter" && task !== "bug")
       : crewTasksToDo;
 
     if (filteredTasks.length === 0) return;
+
+    playSound("/sounds/ui/modal-open.mp3", 1);
     const task =
       filteredTasks[Math.floor(Math.random() * filteredTasks.length)];
     setActiveTask(task);
@@ -372,6 +385,8 @@ export default function Game() {
   //on crew task complete
   function onTaskComplete() {
     if (!ws || !roomCode) return;
+
+    playSound("/sounds/game/task-completed.mp3");
     ws.send(
       JSON.stringify({
         type: "task-completed",
@@ -389,6 +404,7 @@ export default function Game() {
 
   function handleEmergencyMeetingAction() {
     if (!ws) return;
+    playSound("/sounds/game/meeting.mp3", 0.7);
     ws.send(JSON.stringify({ type: "start-meeting", roomCode }));
   }
 

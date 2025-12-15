@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import Error from "../components/Error";
 import PlayerListPanel from "../components/PlayerListPanel";
 import ActivityLogPanel from "../components/ActivityLogPanel";
+import { playSound } from "../libs/utils";
 
 export default function Lobby() {
   const { ws, ready, globalError, setRoomCode, roomState, hasRestartedGame } =
@@ -27,7 +28,7 @@ export default function Lobby() {
   useEffect(() => {
     if (roomCode) setRoomCode(roomCode);
   }, [roomCode, setRoomCode]);
-console.log(hasRestartedGame)
+  console.log(hasRestartedGame);
   // if host trigger create-room event and for non-host join-room event
   useEffect(() => {
     if (!ws || !roomCode || !name) return;
@@ -60,6 +61,7 @@ console.log(hasRestartedGame)
     if (!roomState) return;
     if (roomState.roomCode !== roomCode) return;
     if (roomState.status === "in_progress") {
+      playSound("/sounds/game/game-start.mp3", 1);
       navigate(`/game/${roomState.roomCode}`, { replace: true });
     }
   }, [roomState, navigate, roomCode]);

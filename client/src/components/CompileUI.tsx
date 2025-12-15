@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import Button from "./Button";
+import { playSound } from "../libs/utils";
 
 interface TerminalTaskUIProps {
   onTaskComplete: () => void;
@@ -50,6 +51,7 @@ export default function CompileUI({ onTaskComplete }: TerminalTaskUIProps) {
     const greenZone = greenZoneRef.current;
 
     if (!slider || !greenZone) {
+      playSound("/sounds/ui/error.mp3");
       toast.error("Something went wrong");
       return;
     }

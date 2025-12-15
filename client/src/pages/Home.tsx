@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Spinner from "../components/Spinner";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+import { playSound } from "../libs/utils";
 
 export default function Home() {
   const { ws, ready, globalError, setGlobalError, roomCode, setRoomCode } =
@@ -55,6 +56,7 @@ export default function Home() {
     }
 
     setGlobalError("");
+    playSound("/sounds/ui/click.wav");
     navigate(
       {
         pathname: `/lobby/${roomData.roomCode}`,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Button from "./Button";
 import toast from "react-hot-toast";
+import { playSound } from "../libs/utils";
 
 interface LogSequenceTaskUIProps {
   onTaskComplete: () => void;
@@ -37,6 +38,7 @@ export default function LogSequenceTaskUI({
       selected.every((l, i) => l === correctOrder[i]);
 
     if (!correct) {
+      playSound("/sounds/ui/error.mp3");
       toast.error("Logs are in the wrong order.");
       reset();
       return;

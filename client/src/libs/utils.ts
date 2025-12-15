@@ -54,6 +54,12 @@ export function getRemainingSecondsFromTimestamp(
   }
 }
 
+export function playSound(path: string, volume = 0.5) {
+  const audio = new Audio(path);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+}
+
 //cooldown for spy actions
 export const KILL_COOLDOWN = 30000;
 export const SABOTAGE_COOLDOWN = 30000;

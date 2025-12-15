@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import Button from "./Button";
 import toast from "react-hot-toast";
-import { shuffle } from "../libs/utils";
+import { playSound, shuffle } from "../libs/utils";
 
 interface CaptchaTaskUIProps {
   onTaskComplete: () => void;
@@ -83,6 +83,7 @@ export default function CaptchaTaskUI({ onTaskComplete }: CaptchaTaskUIProps) {
       sortedSelected.every((v, i) => v === sortedCorrect[i]);
 
     if (!imagesCorrect) {
+      playSound("/sounds/ui/error.mp3");
       errors.push("Select all computer images correctly.");
     }
 
@@ -92,6 +93,7 @@ export default function CaptchaTaskUI({ onTaskComplete }: CaptchaTaskUIProps) {
     }
 
     if (errors.length) {
+      playSound("/sounds/ui/error.mp3");
       toast.error(errors[0]);
       return false;
     }

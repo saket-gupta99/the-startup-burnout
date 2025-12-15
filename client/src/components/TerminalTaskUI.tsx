@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import Button from "./Button";
 import toast from "react-hot-toast";
+import { playSound } from "../libs/utils";
 
 interface TerminalTaskUIProps {
   onTaskComplete: () => void;
@@ -22,10 +23,12 @@ export default function TerminalTaskUI({
   function handleSubmit() {
     const normalized = normalizeCommand(command);
     if (!normalized) {
+      playSound("/sounds/ui/error.mp3");
       toast.error("Type a command first.");
       return;
     }
     if (!ACCEPTED_COMMANDS.includes(normalized)) {
+      playSound("/sounds/ui/error.mp3");
       toast.error("Incorrect command!");
       return;
     }

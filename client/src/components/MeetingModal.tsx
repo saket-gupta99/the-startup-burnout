@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import VotingUI from "./VotingUI";
 import DiscussionUI from "./DiscussionUI";
+import { playSound } from "../libs/utils";
 
 interface MeetingModalProps {
   roomState: IRoomState;
@@ -40,6 +41,7 @@ export default function MeetingModal({
   function submitVote(targetId: string | "skip") {
     if (!ws) return;
 
+    playSound("/sounds/game/vote.mp3", 0.4);
     ws.send(
       JSON.stringify({
         type: "voting",
