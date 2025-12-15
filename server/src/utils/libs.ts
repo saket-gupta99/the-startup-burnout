@@ -191,7 +191,7 @@ export function finishVoting(room: IRoomState) {
 
   // End game if spy eliminated
   if (isSpy) {
-    room.logs.push(reason);
+    room.logs.push(reason+" Crew wins🎉");
     room.status = "ended";
     broadcastRoomState(room);
     return;
@@ -220,7 +220,7 @@ export function endMeeting(room: IRoomState) {
 
   if (aliveSpies >= aliveCrew) {
     room.status = "ended";
-    room.logs.push("Spy wins! Launch failed");
+    room.logs.push("Spy wins! Launch failed😞");
   } else if (room.status === "meeting") {
     room.status = "in_progress";
     room.logs.push("Meeting ended. Back to work.");

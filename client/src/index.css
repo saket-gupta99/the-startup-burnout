@@ -4,3 +4,15 @@
     --color-new-blue: #3e54a3;
     --color-new-blue-2: #5c86e1;
 }
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-shake {
+  animation: shake 0.35s ease-in-out;
+}

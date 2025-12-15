@@ -69,6 +69,7 @@ export default function Game() {
 
   console.log("roomstate:", roomState);
 
+  //custom event for showing voting result
   useEffect(() => {
     function handleResults(e: Event) {
       const customEvent = e as CustomEvent<VotingResult>;
@@ -95,7 +96,17 @@ export default function Game() {
 
     if (logs.length > prevLogLenRef.current && roomState?.status !== "ended") {
       const newLogs = logs.slice(prevLogLenRef.current);
-      newLogs.forEach((log) => toast(log));
+      newLogs.forEach((log) => {toast(log);
+        if (log.toLowerCase().includes("sabotage happended")) {
+          playSound("/sounds/game/sabotage.mp3");
+        }
+        if (log.toLowerCase().includes("ddos attack")) {
+          playSound("/sounds/game/freeze.mp3");
+        }
+        if (log.toLowerCase().includes("lost connection")) {
+          playSound("/sounds/game/kill.mp3");
+        }
+      });
       prevLogLenRef.current = logs.length;
     }
   }, [logs, ws, ready, roomState]);
@@ -314,7 +325,6 @@ export default function Game() {
   function handleSabotageAction() {
     if (role !== "spy" || !ws) return;
 
-    playSound("/sounds/game/sabotage.mp3");
     ws.send(JSON.stringify({ type: "sabotage", roomCode }));
     setSabotageCooldown(Math.ceil(SABOTAGE_COOLDOWN / 1000));
   }
@@ -326,7 +336,6 @@ export default function Game() {
   function killPlayer(targetId: string) {
     if (role !== "spy" || !ws) return;
 
-    playSound("/sounds/game/kill.mp3");
     ws.send(
       JSON.stringify({
         type: "spy-kill",
@@ -334,6 +343,7 @@ export default function Game() {
         targetSocketId: targetId,
       })
     );
+    playSound("/sounds/game/kill.mp3");
     setKillCooldown(Math.ceil(KILL_COOLDOWN / 1000));
     setAttemptingToKill(false);
   }
@@ -341,7 +351,6 @@ export default function Game() {
   function handleFreezeAction() {
     if (role !== "spy" || !ws) return;
 
-    playSound("/sounds/game/freeze.mp3");
     ws.send(JSON.stringify({ type: "ddos", roomCode }));
     setFreezeSecondsLeft(Math.ceil(FREEZE_COOLDOWN / 1000));
   }

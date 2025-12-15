@@ -271,7 +271,7 @@ wss.on("connection", (ws: WebSocket) => {
 
         if (room.taskProgress >= 100) {
           room.status = "ended";
-          room.logs.push("Crew wins! Product launched");
+          room.logs.push("Crew wins! Product launched🎉");
         }
 
         broadcastRoomState(room);
