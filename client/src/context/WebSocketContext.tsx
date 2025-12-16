@@ -55,7 +55,9 @@ export default function WebSocketProvider({
 
     function connect() {
       currentWs = new WebSocket(
-        import.meta.env.PROD ? "" : "ws://localhost:4000"
+        import.meta.env.PROD
+          ? "wss://the-startup-burnout.onrender.com"
+          : "ws://localhost:4000"
       );
       setReady(false);
 
