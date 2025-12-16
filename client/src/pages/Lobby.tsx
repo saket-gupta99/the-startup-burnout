@@ -13,6 +13,7 @@ import Error from "../components/Error";
 import PlayerListPanel from "../components/PlayerListPanel";
 import ActivityLogPanel from "../components/ActivityLogPanel";
 import { playSound } from "../libs/utils";
+import MeetingChat from "../components/MeetingChat";
 
 export default function Lobby() {
   const { ws, ready, globalError, setRoomCode, roomState, hasRestartedGame } =
@@ -28,7 +29,7 @@ export default function Lobby() {
   useEffect(() => {
     if (roomCode) setRoomCode(roomCode);
   }, [roomCode, setRoomCode]);
-  console.log(hasRestartedGame);
+  
   // if host trigger create-room event and for non-host join-room event
   useEffect(() => {
     if (!ws || !roomCode || !name) return;
@@ -195,6 +196,15 @@ export default function Lobby() {
             logs={roomState?.logs ?? []}
             containerClassName="h-1/2"
             emptyMessage="• Room created. Waiting for more players…"
+          />
+        </section>
+
+        <section className="flex w-full flex-1 flex-col gap-4">
+          <MeetingChat
+            chats={roomState?.chats || []}
+            name={name}
+            ws={ws}
+            roomCode={roomCode || "-------"}
           />
         </section>
       </div>

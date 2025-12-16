@@ -92,6 +92,7 @@ wss.on("connection", (ws: WebSocket) => {
           ],
           taskProgress: 0,
           logs: [`Room ${roomCode} created by ${msg.name}`],
+          chats: [],
           meeting: {
             discussionEndsAt: null,
             votingEndsAt: null,
@@ -506,12 +507,12 @@ wss.on("connection", (ws: WebSocket) => {
         const room = getRoom(msg.roomCode, ws);
 
         if (!room) return;
-        if (room.status !== "meeting") {
-          ws.send(
-            JSON.stringify({ type: "error", message: "Game not in meeting" })
-          );
-          return;
-        }
+        // if (room.status !== "meeting") {
+        //   ws.send(
+        //     JSON.stringify({ type: "error", message: "Game not in meeting" })
+        //   );
+        //   return;
+        // }
         const player = room.players.find((p) => p.socketId === ws.id);
         if (!player || !player.isAlive) {
           return;

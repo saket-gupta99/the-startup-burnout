@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "./Button";
 import { playSound } from "../libs/utils";
 
 interface GameOverModalProps {
-  outcome: string;            
+  outcome: string;
   onPlayAgain: () => void;
   onStay: () => void;
 }
@@ -13,14 +13,21 @@ export default function GameOverModal({
   onPlayAgain,
   onStay,
 }: GameOverModalProps) {
+  const preserveOutcomeRef = useRef<string | null>(null);
+
+  //unnecessarily music was playing so created this 
+  useEffect(() => {
+    preserveOutcomeRef.current = outcome;
+  }, []);
 
   useEffect(() => {
-  if (outcome.includes("Crew")) {
-    playSound("/sounds/result/crew-win.mp3");
-  } else {
-    playSound("/sounds/result/spy-win.mp3");
-  }
-}, [outcome]);
+    if (outcome !== preserveOutcomeRef.current) return;
+    if (outcome.includes("Crew")) {
+      playSound("/sounds/result/crew-win.mp3");
+    } else {
+      playSound("/sounds/result/spy-win.mp3");
+    }
+  }, [outcome, preserveOutcomeRef]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -38,18 +45,11 @@ export default function GameOverModal({
         </p>
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            variant="basic"
-            className="sm:w-auto"
-            onClick={onStay}
-          >
+          <Button variant="basic" className="sm:w-auto" onClick={onStay}>
             Stay & view log
           </Button>
 
-          <Button
-            className="sm:w-auto"
-            onClick={onPlayAgain}
-          >
+          <Button className="sm:w-auto" onClick={onPlayAgain}>
             Play again
           </Button>
         </div>
