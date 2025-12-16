@@ -20,7 +20,7 @@ export default function SpamFilterUI({ onTaskComplete }: TerminalTaskUIProps) {
     { id: 6, subject: "Nigerian Prince needs help", spam: true },
   ]);
 
-  const [trash, setTrash] = useState<Email[]>([]);
+  const [_trash, setTrash] = useState<Email[]>([]);
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
