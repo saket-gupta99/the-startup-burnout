@@ -37,7 +37,7 @@ export default function VoteResultModal({
             )?.name;
             return (
               <p key={playerId} className="text-slate-700">
-                {playerName}:{" "}
+                {playerName || "Spy"}:{" "}
                 <span className="font-semibold">{count} votes</span>
               </p>
             );
